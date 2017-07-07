@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PbixInstallerForPowerBI", "PbixInstallerForPowerBI\PbixInstallerForPowerBI.csproj", "{56BE6B1A-3023-4E97-9261-4DC5FA2FB6BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RestPowerBI", "PbixInstallerForPowerBI\RestPowerBI.csproj", "{56BE6B1A-3023-4E97-9261-4DC5FA2FB6BA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

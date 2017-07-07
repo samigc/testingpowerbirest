@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace PbixInstallerForPowerBI.Model {
+namespace RestPowerBI.Model {
 
   public class Workspace {
     public string id { get; set; }

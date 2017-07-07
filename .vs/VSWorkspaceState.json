@@ -1,0 +1,13 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\.vs",
+    "\\.vs\\PbixInstallerForPowerBI",
+    "\\packages",
+    "\\RestPowerBI",
+    "\\RestPowerBI\\bin",
+    "\\RestPowerBI\\bin\\Debug"
+  ],
+  "SelectedNode": "\\RestPowerBI\\Program.cs",
+  "PreviewInSolutionExplorer": false
+}
