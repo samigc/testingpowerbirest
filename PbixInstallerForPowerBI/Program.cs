@@ -1,5 +1,5 @@
 ﻿using System;
-using Microsoft.Rest;
+
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -8,6 +8,11 @@ using Newtonsoft.Json;
 using System.Net;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
+using System.Threading;
+using System.Linq;
 
 namespace RestPowerBI
 {
@@ -154,7 +159,7 @@ namespace RestPowerBI
                         datasetId = results["value"][0]["id"];
 
                         Console.WriteLine(String.Format("Dataset ID: {0}", datasetId));
-                        
+
 
                         return datasetId;
                     }
@@ -320,178 +325,87 @@ namespace RestPowerBI
             }
         }
 
-        public static void UpdateReport(string importName, string sqlAzureUser, string sqlAzurePassword)
+        #region "Handling datasets"
+        public static String GetID(string DatasetName)
         {
-
-            string restUrlDatasets = ProgramConstants.PowerBiServiceRootUrl + "datasets/";
-            Console.WriteLine(restUrlDatasets);
-
-            string jsonDatasets = ExecuteGetRequest(restUrlDatasets);
-            Console.WriteLine(jsonDatasets);
-
-            DatasetCollection datasets = JsonConvert.DeserializeObject<DatasetCollection>(jsonDatasets);
-            Console.WriteLine(datasets.value);
-
-            foreach (var dataset in datasets.value)
-            {
-                // Console.WriteLine(dataset.id);
-                // find dataset whose name matches import name
-                if (importName.Equals(dataset.name))
-                {
-                    Console.WriteLine("Updating data source for dataset named " + dataset.name);
-                    // determine gateway id and datasoure id
-                    string restUrlDatasetToUpdate = ProgramConstants.restUrlDatasets + dataset.id + "/";
-                    Console.WriteLine(restUrlDatasetToUpdate);
-
-                    string restUrlDatasetDefaultGateway = restUrlDatasetToUpdate + "tables/Colas";
-                    Console.WriteLine(restUrlDatasetDefaultGateway);
-                    string jsonDefaultGateway = ExecuteGetRequest(restUrlDatasetDefaultGateway);
-
-                    Console.WriteLine(jsonDefaultGateway);
-                    Console.WriteLine(dataset.name);
-
-                    
-                    Gateway defaultGateway = (JsonConvert.DeserializeObject<GatewayCollection>(jsonDefaultGateway)).value[0];
-
-                    Console.WriteLine(" - Gateway ID: " + defaultGateway.gatewayId);
-                    Console.WriteLine(" - Datasource ID: " + defaultGateway.id);
-
-                    // create URL with pattern myorg/gateways/{gateway_id}/datasources/{datasource_id}
-                    string restUrlPatchCredentials =
-                      ProgramConstants.PowerBiServiceRootUrl +
-                      "gateways/" + defaultGateway.gatewayId + "/" +
-                      "datasources/" + defaultGateway.id + "/";
-
-                    // create C# object with credential data
-                    DataSourceCredentials dataSourceCredentials =
-                      new DataSourceCredentials
-                      {
-                          credentialType = "Basic",
-                          basicCredentials = new BasicCredentials
-                          {
-                              username = sqlAzureUser,
-                              password = sqlAzurePassword
-                          }
-                      };
-
-                    // serialize C# object into JSON
-                    string jsonDelta = JsonConvert.SerializeObject(dataSourceCredentials);
-
-                    // add JSON to HttpContent object and configure content type
-                    HttpContent patchRequestBody = new StringContent(jsonDelta);
-                    patchRequestBody.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/json");
-
-                    // prepare PATCH request
-                    var method = new HttpMethod("PATCH");
-                    var request = new HttpRequestMessage(method, restUrlPatchCredentials);
-                    request.Content = patchRequestBody;
-
-                    HttpClient client = new HttpClient();
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
-
-                    client.SendAsync(request);
-
-                    Console.WriteLine("Credentials have been updated..");
-                    Console.WriteLine();
-                }
-            }
-        }
-
-        public static void PatchDatasourceCredentials(string importName, string sqlAzureUser, string sqlAzurePassword)
-        {
-
             string restUrlDatasets = ProgramConstants.PowerBiServiceRootUrl + "datasets/";
             string jsonDatasets = ExecuteGetRequest(restUrlDatasets);
-
             DatasetCollection datasets = JsonConvert.DeserializeObject<DatasetCollection>(jsonDatasets);
             foreach (var dataset in datasets.value)
             {
-                // find dataset whose name matches import name
-                if (importName.Equals(dataset.name))
+                if (DatasetName.Equals(dataset.name))
                 {
-                    Console.WriteLine("Updating data source for dataset named " + dataset.name);
-                    // determine gateway id and datasoure id
-                    string restUrlDatasetToUpdate = ProgramConstants.restUrlDatasets + dataset.id + "/";
-
-                    string restUrlDatasetDefaultGateway = restUrlDatasetToUpdate + "Default.GetBoundGatewayDataSources";
-
-                    string jsonDefaultGateway = ExecuteGetRequest(restUrlDatasetDefaultGateway);
-
-                    Gateway defaultGateway = (JsonConvert.DeserializeObject<GatewayCollection>(jsonDefaultGateway)).value[0];
-
-                    Console.WriteLine(" - Gateway ID: " + defaultGateway.gatewayId);
-                    Console.WriteLine(" - Datasource ID: " + defaultGateway.id);
-
-                    // create URL with pattern myorg/gateways/{gateway_id}/datasources/{datasource_id}
-                    string restUrlPatchCredentials =
-                      ProgramConstants.PowerBiServiceRootUrl +
-                      "gateways/" + defaultGateway.gatewayId + "/" +
-                      "datasources/" + defaultGateway.id + "/";
-
-                    // create C# object with credential data
-                    DataSourceCredentials dataSourceCredentials =
-                      new DataSourceCredentials
-                      {
-                          credentialType = "Basic",
-                          basicCredentials = new BasicCredentials
-                          {
-                              username = sqlAzureUser,
-                              password = sqlAzurePassword
-                          }
-                      };
-
-                    // serialize C# object into JSON
-                    string jsonDelta = JsonConvert.SerializeObject(dataSourceCredentials);
-
-                    // add JSON to HttpContent object and configure content type
-                    HttpContent patchRequestBody = new StringContent(jsonDelta);
-                    patchRequestBody.Headers.ContentType = new MediaTypeWithQualityHeaderValue("application/json");
-
-                    // prepare PATCH request
-                    var method = new HttpMethod("PATCH");
-                    var request = new HttpRequestMessage(method, restUrlPatchCredentials);
-                    request.Content = patchRequestBody;
-
-                    HttpClient client = new HttpClient();
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
-
-                    client.SendAsync(request);
-
-                    Console.WriteLine("Credentials have been updated..");
-                    Console.WriteLine();
+                    string x = dataset.id;
+                    return x;
                 }
             }
+            return "";
         }
 
-        public static void ImportXML(string xmlpath, string importname)
+        public static JObject ColumnJs(string ColumnName, string DataType)
         {
-            //Rest Url with the import ame in query string
-            string restUrlImportXml = ProgramConstants.PowerBiServiceRootUrl + "imports?datasetDisplayName=" + importname;
-            // load xml dile into stream contntent object
-            var xmlBodyContent = new StreamContent(File.Open(xmlpath, FileMode.Open));
-            // add headers or request body content
-
+            dynamic Js = new JObject();
+            Js.name = ColumnName;
+            Js.dataType = DataType;
+            return Js;
         }
 
-        public static async void CreateDataset(string datasetName)
+        public static JObject TableJs(string TableName, string[] ColumnNames, string[] DataTypes, string[] FormatStrings, string isHidden = "false")
         {
-           var baseAddress = new Uri("https://api.powerbi.com/");
-            string jsonDataset = "{\"name\": \""+ datasetName +"\",\"tables\": " +
-                "[{\"name\": \"Product\", \"columns\": " +
-                "[{ \"name\": \"ProductID\", \"dataType\": \"Int64\"}, " +
-                "{ \"name\": \"Name\", \"dataType\": \"string\"}, " +
-                "{ \"name\": \"Category\", \"dataType\": \"string\"}," +
-                "{ \"name\": \"IsCompete\", \"dataType\": \"bool\"}," +
-                "{ \"name\": \"ManufacturedOn\", \"dataType\": \"DateTime\"}" +
-                "]}]}";
+            JArray ColumnArray = new JArray();
+            for (int i = 0; i < ColumnNames.Length; i++)
+            {
+                ColumnArray.Add(ColumnJs(ColumnNames[i], DataTypes[i]));
+            }
+            JObject Js = new JObject(
+                new JProperty("name", TableName),
+                new JProperty("columns", ColumnArray));
+            return Js;
+        }
+
+        public static JObject DatasetJs(string DatasetName, string defaultmode, JObject[] Tables)
+        {
+            JArray TableArray = new JArray();
+            for (int i = 0; i < Tables.Length; i++)
+            {
+                TableArray.Add(Tables[i]);
+            }
+            JObject Js = new JObject(
+                new JProperty("name", DatasetName),
+                new JProperty("defaultMode", defaultmode),
+                new JProperty("tables", TableArray));
+            return Js;
+        }
+
+        public static JObject RowJs(string[] keys, string[] values, string title = "rows")
+        {
+            JProperty[] k = new JProperty[keys.Length];
+
+            for (int i = 0; i < keys.Length; i++)
+            {
+                k[i] = new JProperty(keys[i], values[i]);
+
+            }
+            JObject Js = new JObject(k);
+            JArray rowarray = new JArray();
+            rowarray.Add(Js);
+            JObject row = new JObject(
+                new JProperty(title, rowarray));
+            return row;
+        }
+        #endregion
+
+        public static async Task CreateDataset(string datasetName, string DefaultMode, JObject[] tables)
+        {
+            var baseAddress = new Uri("https://api.powerbi.com/");
+            JObject datasetjson = DatasetJs(datasetName, DefaultMode, tables);
+            string datasetstring = JsonConvert.SerializeObject(datasetjson);
 
             using (var client = new HttpClient { BaseAddress = baseAddress })
             {
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-                using (var content = new StringContent(jsonDataset,System.Text.Encoding.Default, "application/json"))
+                using (var content = new StringContent(datasetstring, System.Text.Encoding.Default, "application/json"))
                 {
                     using (var response = await client.PostAsync("v1.0/myorg/datasets", content))
                     {
@@ -500,12 +414,12 @@ namespace RestPowerBI
                 }
             }
         }
-        
-        public static async void ListTables(string DatasetName)
+
+        public static async Task ListTables(string DatasetName)
         {
             string restUrlDatasets = ProgramConstants.PowerBiServiceRootUrl + "datasets/";
             string jsonDatasets = ExecuteGetRequest(restUrlDatasets);
-            DatasetCollection datasets = JsonConvert.DeserializeObject<DatasetCollection>(jsonDatasets);         
+            DatasetCollection datasets = JsonConvert.DeserializeObject<DatasetCollection>(jsonDatasets);
             foreach (var dataset in datasets.value)
             {
                 if (DatasetName.Equals(dataset.name))
@@ -523,18 +437,19 @@ namespace RestPowerBI
                                 string responseData = await response.Content.ReadAsStringAsync();
                                 Console.WriteLine(responseData);
                                 Console.ReadLine();
-                            } else
+                            }
+                            else
                             {
                                 Console.WriteLine();
-                                Console.WriteLine("The response error code is "+ response.StatusCode);
+                                Console.WriteLine("The response error code is " + response.StatusCode);
                                 Console.WriteLine();
                             }
-                            
+
                         }
                     }
                 }
             }
-                   
+
         }
 
         public static async void AddRows(string DatasetName, string TableName)
@@ -552,13 +467,13 @@ namespace RestPowerBI
                         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
                         client.DefaultRequestHeaders.Add("Accept", "application/json");
 
-                        using (var content = new StringContent("{  \"rows\": [    {      \"ProductID\": 50,      \"Name\": \"Race\",      \"Category\": \"Compes\",      \"IsCompete\": true,      \"ManufacturedOn\": \"07/30/2014\"    }  ]}", System.Text.Encoding.Default, "application/json"))
+                        using (var content = new StringContent("{  \"rows\": [    {      \"ProductID\": 5,      \"Name\": \"El gato12\",      \"Category\": \"holaFelin3\",      \"IsCompete\": true,      \"ManufacturedOn\": \"07/30/2014\"    }  ]}", System.Text.Encoding.Default, "application/json"))
                         {
-                            using (var response = await client.PostAsync("v1.0/myorg/datasets/" + dataset.id + "/tables/"+ TableName + "/rows", content))
+                            using (var response = await client.PostAsync("v1.0/myorg/datasets/" + dataset.id + "/tables/" + TableName + "/rows", content))
                             {
                                 string responseData = await response.Content.ReadAsStringAsync();
                                 Console.WriteLine(responseData);
-                             
+
                             }
                         }
                     }
@@ -566,7 +481,7 @@ namespace RestPowerBI
             }
         }
 
-        public static async void DeleteRows(string DatasetName, string Tablename)
+        public static async Task DeleteRows(string DatasetName, string Tablename)
         {
             string restUrlDatasets = ProgramConstants.PowerBiServiceRootUrl + "datasets/";
             string jsonDatasets = ExecuteGetRequest(restUrlDatasets);
@@ -591,24 +506,149 @@ namespace RestPowerBI
             }
         }
 
-            static void Main()
+        public static void CreatePrebelDataset()
+        {
+            string[] namestotales = { "Entregas", "Lineas", "Materiales", "Unidades" };
+            string[] datatotales = { "String", "String", "String", "String" };
+            string[] formatotales = { "@", "None", "None", "None" };
+
+            string[] tablenames = { "Colas", "Lineas", "Materiales", "OTs", "Unidades" };
+            string[] datatypes = { "String", "String", "String", "String", "String" };
+            string[] formatstring = { "@", "None", "None", "None", "None" };
+
+            string[] horaname = { "Hora de actualizacion" };
+            string[] datahora = { "String" };
+            string[] formathora = { "G" };
+            JObject[] tablas = new JObject[] { TableJs("Totales", namestotales, datatotales, formatotales), TableJs("Colas", tablenames, datatypes, formatstring), TableJs("Detalle", tablenames, datatypes, formatstring), TableJs("Hora", horaname, datahora, formathora) };
+            CreateDataset("PrebelDataset", "Push", tablas).Wait();
+
+            //ListTables("PrebelDataset");
+            //var id = GetID("PrebelDataset");
+            //AddRows("PrebelDataset");
+            //String PathToPush = ProgramConstants.PowerBiServiceRootUrl + "datasets/" + id;
+        }
+
+        public static async Task AddRowsPrebel(string TableName, String[] Values)
+        {
+            string id = GetID("PrebelDataset");
+            var baseAddress = new Uri("https://api.powerbi.com/");
+            using (var client = new HttpClient { BaseAddress = baseAddress })
+            {
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                string content;
+                string[] keys;
+                switch (TableName)
+                {
+                    case "Colas":
+                        keys = new string[] { "Colas", "Lineas", "Materiales", "OTs", "Unidades" };
+                        break;
+                    case "Detalle":
+                        keys = new string[] { "Colas", "Lineas", "Materiales", "OTs", "Unidades" };
+                        break;
+                    case "Hora":
+                        keys = new string[] { "Hora de actualizacion" };
+                        break;
+                    case "Totales":
+                        keys = new string[] { "Entregas", "Lineas", "Materiales", "Unidades" };
+                        break;
+                    default:
+                        keys = new string[] { "" };
+                        Console.Error.WriteLine("Usa 1 de las 4 tablas: Colas,Detalle,Hora,Totales");
+                        break;
+                }
+                content = JsonConvert.SerializeObject(RowJs(keys, Values));
+                using (var newcontent = new StringContent(content, System.Text.Encoding.Default, "application/json"))
+                {
+                    using (var response = await client.PostAsync("v1.0/myorg/datasets/" + id + "/tables/" + TableName + "/rows", newcontent))
+                    {
+                        string responseData = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine(responseData);
+                    }
+                }
+            }
+        }
+
+        //public static async Task RefreshDataset(string DatasetId)
+        //{
+        //    var baseAddress = new Uri("https://api.powerbi.com/");
+        //    using (var client = new HttpClient { BaseAddress = baseAddress })
+        //    {
+        //        client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AccessToken);
+        //        client.DefaultRequestHeaders.Add("Accept", "application/json");
+
+        //        string[] keys = new string[] { "id", "refreshType", "startTime", "endTime", "status" };
+        //        string[] values = new string[] { "251845601", "ViaApi", "2017-07-09T12:06:46.087Z", "2017-07-09T12:07:46.087Z", "Completed" };
+
+        //        JObject json = RowJs(keys, values, "value");
+        //        string JsonData = JsonConvert.SerializeObject(json);
+
+        //        using (var content = new StringContent(JsonData, System.Text.Encoding.Default, "application/json"))
+        //        {
+        //            using (var response = await client.PostAsync("v1.0/myorg/datasets/" + DatasetId + "/refreshes", content))
+        //            {
+        //                string responseData = await response.Content.ReadAsStringAsync();
+        //                Console.WriteLine(responseData);
+
+        //            }
+        //        }
+        //    }
+
+        //}
+
+        private static Random random = new Random();
+        public static string RandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        public static string RandomNumber(int length)
+        {
+            const string chars = "0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        static void Main()
         {
 
             AcquireAccessToken();
+            //CreatePrebelDataset();
+            //ListTables("PrebelDataset").Wait();
+            
+            for (int j = 0; j < 5; j++)
+            {
+                DeleteRows("PrebelDataset", "Detalle").Wait();
+                DeleteRows("PrebelDataset", "Colas").Wait();
+                DeleteRows("PrebelDataset", "Totales").Wait();
+                
+                for (int i = 0; i < 5; i++)
+                {
+                    DeleteRows("PrebelDataset", "Hora").Wait();
+                    AddRowsPrebel("Hora", new string[] { String.Format("{0:G}", DateTime.Now) }).Wait();
+                    AddRowsPrebel("Detalle", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
+                    AddRowsPrebel("Colas", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
+                    AddRowsPrebel("Totales", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
+                    
+
+                    
+                }
+                Console.WriteLine("Sleep for 30 seconds.");
+                Thread.Sleep(30000);
+            }
 
 
-            //CreateDataset("awithoutpush");
 
-            ListTables("awithoutpush");
-            //AddRows("addingrows", "Product");
-            //DeleteRows("awithoutpush", "Product");
+
+
+
+            //CreatePrebelDataset();
+            //ListTables("PrebelDataset");
             //DisplayWorkspaceContents();
-            //Console.ReadLine();
-            //string pbixFilePath = @"C:\Users\user\Downloads\DisnalPrebel.pbix";
-            //string importName = "Front Display";
 
-            //ImportPBIX(pbixFilePath, importName);      
-            //UpdateReport(importName, "halopez@conocimientocorporativo.com", "Lumo0558");
+
 
         }
 
