@@ -66,7 +66,7 @@ namespace RestPowerBI
 
 
             //// use authentication context to trigger user sign-in and return access token 
-            var userCreds = new UserPasswordCredential("halopez@conocimientocorporativo.com", "Lumo0558");
+            var userCreds = new UserPasswordCredential("useracccount", "Password");
 
             var userAuthnResult = authenticationContext.AcquireTokenAsync(ProgramConstants.PowerBiServiceResourceUri,
                                                                           ProgramConstants.ClientID,
@@ -623,11 +623,10 @@ namespace RestPowerBI
                 DeleteRows("PrebelDataset", "Detalle").Wait();
                 DeleteRows("PrebelDataset", "Colas").Wait();
                 DeleteRows("PrebelDataset", "Totales").Wait();
-                
+                DeleteRows("PrebelDataset", "Hora").Wait();
+                AddRowsPrebel("Hora", new string[] { String.Format("{0:G}", DateTime.Now) }).Wait();
                 for (int i = 0; i < 5; i++)
                 {
-                    DeleteRows("PrebelDataset", "Hora").Wait();
-                    AddRowsPrebel("Hora", new string[] { String.Format("{0:G}", DateTime.Now) }).Wait();
                     AddRowsPrebel("Detalle", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
                     AddRowsPrebel("Colas", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
                     AddRowsPrebel("Totales", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
