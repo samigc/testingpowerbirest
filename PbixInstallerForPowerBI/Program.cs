@@ -613,12 +613,10 @@ namespace RestPowerBI
 
         static void Main()
         {
-
             AcquireAccessToken();
             //CreatePrebelDataset();
             //ListTables("PrebelDataset").Wait();
-            
-            for (int j = 0; j < 5; j++)
+            for (int j = 0; j < 30; j++)
             {
                 DeleteRows("PrebelDataset", "Detalle").Wait();
                 DeleteRows("PrebelDataset", "Colas").Wait();
@@ -630,28 +628,11 @@ namespace RestPowerBI
                     AddRowsPrebel("Detalle", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
                     AddRowsPrebel("Colas", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
                     AddRowsPrebel("Totales", new string[] { RandomString(5), RandomNumber(3), RandomNumber(3), RandomNumber(3), RandomNumber(3) }).Wait();
-                    
-
-                    
                 }
                 Console.WriteLine("Sleep for 30 seconds.");
+                //Time to stop the job
                 Thread.Sleep(30000);
             }
-
-
-
-
-
-
-            //CreatePrebelDataset();
-            //ListTables("PrebelDataset");
-            //DisplayWorkspaceContents();
-
-
-
         }
-
-
-
     }
 }
